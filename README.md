@@ -2,7 +2,19 @@
 
 ## 📋 Descripción General
 
-Este proyecto utiliza un modelo de **Random Forest Regressor** para estimar y clasificar los niveles de glucosa postprandial (glucosa después de las comidas) basándose en características clínicas y antropométricas del paciente. El modelo es útil para evaluaciones de diabetes y prediabetes.
+Este proyecto desarrolla y compara **7 modelos de Machine Learning** diferentes para estimar y clasificar los niveles de **glucosa postprandial** (glucosa después de las comidas) basándose en características clínicas y antropométricas del paciente. 
+
+Todos los modelos siguen la misma metodología y pipeline, variando solo el algoritmo de entrenamiento. Los modelos entrenados son:
+
+1. Regresión Lineal
+2. Ridge Regression
+3. Lasso Regression
+4. Random Forest
+5. **Gradient Boosting** (usado como ejemplo en esta documentación)
+6. Support Vector Machine (SVM)
+7. Red Neuronal (MLP)
+
+El modelo es útil para evaluaciones de diabetes y prediabetes, clasificando automáticamente los resultados en categorías clínicas.
 
 ---
 
@@ -10,22 +22,30 @@ Este proyecto utiliza un modelo de **Random Forest Regressor** para estimar y cl
 
 - Estimar glucosa postprandial a partir de mediciones de glucosa en ayunas o general
 - Clasificar automáticamente los resultados en categorías clínicas: **Normal**, **Prediabetes** o **Diabetes**
+- Comparar desempeño entre 7 algoritmos diferentes
 - Proporcionar predicciones precisas con métricas de desempeño robustas
+- Identificar el modelo óptimo para máxima precisión
 
 ---
 
-## 📦 Dependencias y Librerías
+## 🔬 ¿Qué es Glucosa Postprandial?
 
-### Librerías Principales
+La glucosa postprandial es la concentración de glucosa en sangre medida **después de la ingesta de alimentos** (típicamente 2 horas post-comida).
 
-```
-pandas            - Manipulación y análisis de datos
-numpy             - Operaciones numéricas
-scikit-learn      - Machine Learning y preprocesamiento
-matplotlib        - Visualización de gráficos
-seaborn           - Gráficos estadísticos avanzados
-joblib            - Serialización del modelo
-```
+| Tipo de Medición | Momento | Rango Normal |
+|-----------------|---------|-------------|
+| **Glucosa en Ayunas** | Después de 8 horas sin comer | < 100 mg/dL |
+| **Glucosa Postprandial** | 2 horas después de comer | < 140 mg/dL |
+| **Glucosa Aleatoria** | Cualquier momento | < 140 mg/dL |
+
+**Importancia clínica**:
+- La glucosa postprandial es más alta que en ayunas (~40 mg/dL más)
+- Es un predictor importante de diabetes
+- Refleja la capacidad del páncreas para regular insulina
+
+---
+
+## 📦 Dependencias Requeridas
 
 ### Instalación
 
@@ -33,71 +53,141 @@ joblib            - Serialización del modelo
 pip install pandas numpy scikit-learn matplotlib seaborn joblib
 ```
 
-### Versión Recomendada
+### Versiones Recomendadas
 
 ```bash
-pip install pandas>=1.3.0 numpy>=1.21.0 scikit-learn>=1.0.0 matplotlib>=3.4.0 seaborn>=0.11.0 joblib>=1.0.0
+pip install pandas>=1.3.0 numpy>=1.21.0 scikit-learn>=1.0.0 \
+            matplotlib>=3.4.0 seaborn>=0.11.0 joblib>=1.0.0
 ```
 
 ---
 
-## 🔧 Detalles de las Librerías Utilizadas
+## 🔧 Librerías Utilizadas
 
 ### **Pandas**
-- **Uso**: Carga y manipulación del archivo CSV
-- **Funciones clave**: `read_csv()`, `dropna()`, `apply()`
-- **Por qué**: Proporciona estructuras de datos (DataFrames) para trabajar con datos tabulares
+```python
+import pandas as pd
+```
+
+| Función | Descripción |
+|---------|-------------|
+| `pd.read_csv()` | Carga archivo CSV desde Google Drive |
+| `df.dropna()` | Elimina filas con valores faltantes |
+| `df.apply()` | Aplica función a cada fila para crear categorías |
+
+**Uso**: Manipulación y limpieza de datos tabulares
+
+---
 
 ### **NumPy**
-- **Uso**: Operaciones numéricas y generación de arreglos
-- **Funciones clave**: `linspace()`, `sqrt()` (a través de sklearn.metrics)
-- **Por qué**: Base para cálculos matemáticos eficientes
+```python
+import numpy as np
+```
+
+- **Función**: Operaciones numéricas subyacentes
+- **Uso**: Cálculos de métricas (RMSE, MAE)
+- **Por qué**: Base computacional eficiente para scikit-learn
+
+---
 
 ### **Scikit-Learn**
-Librería central para Machine Learning con varios módulos:
 
 #### `train_test_split`
-- Divide los datos en conjunto de entrenamiento (70%) y prueba (30%)
-- Evita el sobreajuste del modelo
+```python
+from sklearn.model_selection import train_test_split
 
-#### `RandomForestRegressor`
-- **Algoritmo**: Bosque de árboles de decisión aleatorios
-- **Parámetros**:
-  - `n_estimators=300`: Número de árboles en el bosque
-  - `random_state=42`: Garantiza reproducibilidad
-  - `n_jobs=-1`: Usa todos los procesadores disponibles
-- **Ventajas**: Maneja relaciones no lineales, robusto ante valores atípicos
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+```
 
-#### `SimpleImputer`
-- Llena valores faltantes
-- Estrategia `median` para variables numéricas
-- Estrategia `most_frequent` para variables categóricas
+- **Función**: Divide datos en 70% entrenamiento y 30% prueba
+- **random_state=42**: Garantiza reproducibilidad
+- **Ventaja**: Evalúa el modelo en datos nunca vistos
+
+---
 
 #### `OneHotEncoder`
-- Convierte variables categóricas en numéricas
-- `handle_unknown='ignore'`: Maneja categorías no vistas en entrenamiento
+```python
+from sklearn.preprocessing import OneHotEncoder
+
+encoder = OneHotEncoder(handle_unknown="ignore")
+```
+
+- **Función**: Convierte variable categórica en numéricas binarias
+- **Ejemplo**:
+  ```
+  Entrada:  ["Normal", "Prediabetes", "Diabetes"]
+  Salida:   [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+  ```
+- **handle_unknown="ignore"**: Maneja categorías no vistas en entrenamiento
+
+---
 
 #### `ColumnTransformer`
-- Aplica transformaciones diferentes a columnas numéricas y categóricas
-- Crucial para preprocesamiento heterogéneo
+```python
+from sklearn.compose import ColumnTransformer
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", "passthrough", numeric_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols)
+    ]
+)
+```
+
+- **Función**: Aplica transformaciones diferentes por tipo de columna
+- **"passthrough"**: Deja columnas numéricas sin cambios
+- **OneHotEncoder**: Transforma solo las categóricas
+
+---
 
 #### `Pipeline`
-- Encadena preprocesamiento + modelo
-- Evita data leakage (fuga de información)
-- Facilita reproducibilidad
+```python
+from sklearn.pipeline import Pipeline
+
+model = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("regressor", GradientBoostingRegressor(...))
+])
+```
+
+- **Función**: Encadena preprocesamiento y modelo
+- **Ventaja**: Evita data leakage (fuga de información entre train/test)
+- **Flujo**: `Datos Brutos → Preprocessor → Modelo → Predicción`
+
+---
 
 #### `Métricas de Evaluación`
-- **R²**: Proporción de varianza explicada (0-1, más alto es mejor)
-- **RMSE**: Error cuadrático medio (unidades de glucosa: mg/dL)
-- **MAE**: Error medio absoluto (más interpretable)
+```python
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 
-### **Matplotlib y Seaborn**
-- Visualización de resultados
-- Gráfico de dispersión (scatter plot) comparando predicciones reales vs. predichas
+r2 = r2_score(y_real, y_predicho)
+rmse = np.sqrt(mean_squared_error(y_real, y_predicho))
+mae = mean_absolute_error(y_real, y_predicho)
+```
+
+| Métrica | Fórmula | Interpretación |
+|---------|---------|----------------|
+| **R²** | `1 - (SS_res / SS_tot)` | Proporción de varianza explicada (0-1) |
+| **RMSE** | `√(Σ(y_real - y_pred)² / n)` | Error promedio en mg/dL |
+| **MAE** | `Σ\|y_real - y_pred\| / n` | Error absoluto medio en mg/dL |
+
+---
 
 ### **Joblib**
-- Serializa el modelo entrenado
-- Permite reutilizar el modelo sin reentrenamiento
+```python
+import joblib
+
+# Guardar modelo
+joblib.dump(model, "modelo.joblib")
+
+# Cargar modelo
+modelo_cargado = joblib.load("modelo.joblib")
+```
+
+- **Función**: Serializa modelos entrenados
+- **Ventaja**: Reutilizar sin reentrenamiento
 
 ---
 
@@ -115,49 +205,40 @@ El modelo utiliza **7 características** como entrada:
 | **tad** | Numérica | Tensión Arterial Diastólica | 40-120 mmHg |
 | **Categoria_Glucosa** | Categórica | Clasificación previa de glucosa | Nominal |
 
-### Selección de Características
-```python
-features_seleccionadas = [
-    "Edad_Años", "peso", "talla",
-    "imc", "tas", "tad", "Categoria_Glucosa"
-]
-```
+### Justificación de Features
 
-**Justificación**:
-- Datos antropométricos relacionados con el metabolismo
-- Presión arterial correlacionada con diabetes
-- Categoría de glucosa como referencia clínica
+- **Datos antropométricos** (edad, peso, talla, IMC): Relacionados con metabolismo y resistencia a insulina
+- **Presión arterial** (TAS, TAD): Correlacionada con diabetes tipo 2
+- **Categoría de glucosa**: Referencia clínica previa del paciente
 
 ### Variable Objetivo (Target)
-- **"Resultado"**: Medición de glucosa (en ayunas o general)
-- Se transforma en **Glucosa_Post_Estimada**
+- **"Resultado"**: Medición de glucosa (en ayunas o general) que se transforma en glucosa postprandial
 
 ---
 
 ## 🧮 Transformación de Datos
 
-### 1. Estimación de Glucosa Postprandial
+### Estimación de Glucosa Postprandial
 ```python
-Glucosa_Post_Estimada = Resultado + 40 mg/dL
-Glucosa_Post_Estimada = max(Glucosa_Post_Estimada, 70)
+Glucosa_Post_Estimada = Resultado + 40  # mg/dL
+Glucosa_Post_Estimada = max(Glucosa_Post_Estimada, 70)  # Mínimo clínico
 ```
 
 **Lógica**:
-- La glucosa postprandial es típicamente 40 mg/dL mayor que en ayunas
-- Se asegura un mínimo de 70 mg/dL (valor clínicamente significativo)
+- La glucosa postprandial es típicamente **40 mg/dL mayor** que en ayunas
+- Se asegura un **mínimo de 70 mg/dL** (valor clínicamente significativo)
+- Esto simula el aumento esperado después de la ingesta de alimentos
 
-### 2. Limpieza de Datos
+### Limpieza de Datos
 ```python
-df_limpio = df.dropna(subset=[target]).copy()
+df_limpio = df.dropna(subset=features_seleccionadas + [target]).copy()
 ```
-- Elimina filas con valores faltantes en la variable objetivo
+- Elimina filas con valores faltantes
 - `copy()` evita modificaciones en el DataFrame original
 
 ---
 
-## 🏷️ Clasificación Clínica
-
-El modelo clasifica automáticamente los resultados en **3 categorías**:
+## 🏷️ Clasificación Clínica Postprandial
 
 ```python
 def clasificar_glucosa_post(valor):
@@ -169,7 +250,7 @@ def clasificar_glucosa_post(valor):
         return "Diabetes"
 ```
 
-### Criterios de Clasificación (OMS/ADA)
+### Criterios de Clasificación (OMS/ADA) - Postprandial
 
 | Clasificación | Rango (mg/dL) | Interpretación |
 |---------------|---------------|----------------|
@@ -178,180 +259,384 @@ def clasificar_glucosa_post(valor):
 | **Diabetes** | ≥ 200 | Diabetes mellitus diagnosticada |
 
 **Estándares**:
-- Basado en pruebas de tolerancia a la glucosa (PTGO)
+- Basado en **Prueba de Tolerancia Oral a la Glucosa (PTGO)**
 - Criterios de la OMS y Asociación Americana de Diabetes (ADA)
+- Medición a los 120 minutos post-comida
 
 ---
 
-## 🤖 Arquitectura del Modelo
+## 🔄 Estructura Común del Código
 
-### Pipeline de Procesamiento
+Todos los 7 modelos siguen esta estructura idéntica:
 
 ```
-┌─────────────────────────────────────────┐
-│     Datos Crudos (CSV)                  │
-└────────────┬────────────────────────────┘
+┌─────────────────────────────────────┐
+│  1. CARGAR DATOS (CSV)              │
+└────────────┬────────────────────────┘
              │
              ▼
-┌─────────────────────────────────────────┐
-│     ColumnTransformer                   │
-│  ┌──────────────────────────────────┐   │
-│  │ Numéricas → SimpleImputer(median)│   │
-│  └──────────────────────────────────┘   │
-│  ┌──────────────────────────────────┐   │
-│  │ Categóricas → Imputer + OneHot   │   │
-│  └──────────────────────────────────┘   │
-└────────────┬────────────────────────────┘
+┌─────────────────────────────────────┐
+│  2. CREAR CATEGORÍAS DE GLUCOSA     │
+│     (Normal/Prediabetes/Diabetes)   │
+└────────────┬────────────────────────┘
              │
              ▼
-┌─────────────────────────────────────────┐
-│   Random Forest Regressor               │
-│   (300 árboles de decisión)             │
-└────────────┬────────────────────────────┘
+┌─────────────────────────────────────┐
+│  3. ESTIMAR GLUCOSA POSTPRANDIAL    │
+│     Resultado + 40 mg/dL            │
+└────────────┬────────────────────────┘
              │
              ▼
-┌─────────────────────────────────────────┐
-│   Predicciones (mg/dL)                  │
-│   + Clasificación (Normal/Prediabetes..)│
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────┐
+│  4. SELECCIONAR FEATURES (7)        │
+│     y TARGET (Resultado)            │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  5. LIMPIAR DATOS                   │
+│     dropna() en target              │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  6. PREPROCESAR                     │
+│     Numéricas: passthrough          │
+│     Categóricas: OneHotEncoder      │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  7. DIVIDIR DATOS                   │
+│     70% train / 30% test            │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  8. CREAR PIPELINE                  │
+│     Preprocessor + Modelo           │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  9. ENTRENAR MODELO                 │
+│     model.fit(X_train, y_train)     │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  10. EVALUAR                        │
+│     Calcular R², RMSE, MAE          │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│  11. GUARDAR MODELO                 │
+│      joblib.dump()                  │
+└─────────────────────────────────────┘
 ```
-
-### Hiperparámetros
-- **n_estimators=300**: Mayor número de árboles → mejores predicciones
-- **random_state=42**: Reproducibilidad garantizada
-- **n_jobs=-1**: Paralelización para mayor velocidad
 
 ---
 
-## 📈 Evaluación del Modelo
+## 📈 Comparativa de Desempeño
 
-### Métricas de Desempeño
+Se entrenaron 7 modelos diferentes para predicción de glucosa postprandial:
 
-#### **Coeficiente R² (R-squared)**
+| Modelo | R² Test | RMSE Test | MAE Test | Recomendación |
+|--------|---------|-----------|----------|--------------|
+| **Random Forest** 🥇 | 0.8622 | 12.62 mg/dL | 9.69 mg/dL | ⭐ MEJOR |
+| **Gradient Boosting** 🥈 | 0.8240 | 14.27 mg/dL | 10.90 mg/dL | ⭐⭐ Buena |
+| **Ridge Regression** 🥉 | 0.8237 | 14.28 mg/dL | 11.26 mg/dL | ⭐⭐ Rápida |
+| Lasso Regression | 0.8237 | 14.28 mg/dL | 11.24 mg/dL | ⭐⭐ Rápida |
+| Regresión Lineal | 0.8233 | 14.29 mg/dL | 11.28 mg/dL | ⭐ Baseline |
+| Support Vector Machine | 0.8114 | 14.77 mg/dL | 11.55 mg/dL | ⭐ Moderada |
+| Red Neuronal (MLP) | 0.7956 | 15.37 mg/dL | 11.94 mg/dL | ⭐ Menor |
+
+---
+
+## 🎯 Modelos Implementados
+
+### 1. Regresión Lineal
+- **Características**: Simple, interpretable, baseline
+- **Ventaja**: Muy rápida
+- **Desventaja**: No captura no-linealidades
+- **Caso de uso**: Comparación base
+
+### 2. Ridge Regression (L2 Regularization)
+- **Características**: Regresión lineal con penalización
+- **Ventaja**: Evita sobreajuste, muy rápida
+- **Desventaja**: Mantiene todas las variables
+- **Caso de uso**: Cuando se necesita estabilidad y velocidad
+
+### 3. Lasso Regression (L1 Regularization)
+- **Características**: Regresión lineal con sparsity
+- **Ventaja**: Selecciona automáticamente features importantes
+- **Desventaja**: Puede eliminar variables útiles
+- **Caso de uso**: Selección de variables
+
+### 4. Random Forest ⭐ RECOMENDADO
+- **Características**: Ensamble de árboles paralelos
+- **Ventaja**: Mejor precisión (R²=0.8622), robusto
+- **Desventaja**: Requiere más memoria
+- **Caso de uso**: Máxima precisión en producción
+
+### 5. Gradient Boosting
+- **Características**: Ensamble secuencial de árboles débiles
+- **Ventaja**: Muy buena precisión (R²=0.8240), captura no-linealidades
+- **Desventaja**: Lento en entrenamiento
+- **Caso de uso**: Datos complejos
+
+### 6. Support Vector Machine (SVM)
+- **Características**: Busca hiperplano óptimo
+- **Ventaja**: Bueno en espacios de alta dimensión
+- **Desventaja**: R² menor (0.8114)
+- **Caso de uso**: Cuando hay muchas features
+
+### 7. Red Neuronal (MLP)
+- **Características**: Redes con capas densas
+- **Ventaja**: Flexible, aprende patrones complejos
+- **Desventaja**: Desempeño menor (R²=0.7956), requiere más datos
+- **Caso de uso**: Datasets muy grandes
+
+---
+
+## 🔨 Ejemplo de Código: Gradient Boosting
+
+```python
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+import joblib
+
+# 1. Cargar datos
+df = pd.read_csv("Glucosa_Unique_Completo.csv")
+
+# 2. Crear categorías
+def clasificar_glucosa(valor):
+    if valor <= 100:
+        return "Normal"
+    elif valor <= 125:
+        return "Prediabetes"
+    else:
+        return "Diabetes"
+
+df["Categoria_Glucosa"] = df["Resultado"].apply(clasificar_glucosa)
+
+# 3. Seleccionar features
+features_seleccionadas = [
+    "Edad_Años", "peso", "talla", "imc", "tas", "tad", "Categoria_Glucosa"
+]
+target = "Resultado"
+
+df_limpio = df.dropna(subset=features_seleccionadas + [target]).copy()
+X = df_limpio[features_seleccionadas]
+y = df_limpio[target]
+
+# 4. Preprocesador
+numeric_cols = X.select_dtypes(include=["int64", "float64"]).columns
+categorical_cols = X.select_dtypes(exclude=["int64", "float64"]).columns
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", "passthrough", numeric_cols),
+        ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols)
+    ]
+)
+
+# 5. Pipeline con Gradient Boosting
+model = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("regressor", GradientBoostingRegressor(
+        n_estimators=200,
+        learning_rate=0.1,
+        max_depth=5,
+        random_state=42
+    ))
+])
+
+# 6. Dividir datos
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# 7. Entrenar
+model.fit(X_train, y_train)
+
+# 8. Evaluar
+y_pred_train = model.predict(X_train)
+y_pred_test = model.predict(X_test)
+
+r2_train = r2_score(y_train, y_pred_train)
+rmse_train = (mean_squared_error(y_train, y_pred_train))**0.5
+mae_train = mean_absolute_error(y_train, y_pred_train)
+
+r2_test = r2_score(y_test, y_pred_test)
+rmse_test = (mean_squared_error(y_test, y_pred_test))**0.5
+mae_test = mean_absolute_error(y_test, y_pred_test)
+
+print("="*50)
+print("EVALUACIÓN DEL MODELO GRADIENT BOOSTING")
+print("="*50)
+print(f"[ENTRENAMIENTO] R²={r2_train:.3f} | RMSE={rmse_train:.2f} mg/dL | MAE={mae_train:.2f} mg/dL")
+print(f"[PRUEBA       ] R²={r2_test:.3f} | RMSE={rmse_test:.2f} mg/dL | MAE={mae_test:.2f} mg/dL")
+print("="*50)
+
+# 9. Guardar
+joblib.dump(model, "modelo_gradient_boosting.joblib")
+print(f"✅ Modelo guardado")
 ```
-R² = 1 - (SS_res / SS_tot)
+
+---
+
+## 💾 Cómo Usar un Modelo Entrenado
+
+```python
+import joblib
+import pandas as pd
+
+# Cargar modelo
+modelo = joblib.load("modelo_gradient_boosting.joblib")
+
+# Preparar datos nuevos
+X_nuevo = pd.DataFrame({
+    "Edad_Años": [45],
+    "peso": [75],
+    "talla": [170],
+    "imc": [26],
+    "tas": [120],
+    "tad": [80],
+    "Categoria_Glucosa": ["Normal"]
+})
+
+# Predecir glucosa postprandial
+prediccion = modelo.predict(X_nuevo)
+print(f"Glucosa Postprandial Estimada: {prediccion[0]:.2f} mg/dL")
+
+# Clasificar resultado
+def clasificar(valor):
+    if valor < 140:
+        return "Normal"
+    elif 140 <= valor <= 199:
+        return "Prediabetes"
+    else:
+        return "Diabetes"
+
+clasificacion = clasificar(prediccion[0])
+print(f"Clasificación: {clasificacion}")
 ```
-- **Interpretación**: Proporción de varianza explicada
+
+---
+
+## 📊 Interpretación de Métricas
+
+### R² (Coeficiente de Determinación)
 - **Rango**: 0 a 1 (más alto es mejor)
-- **Ejemplo**: R²=0.85 significa que el modelo explica el 85% de la variabilidad
+- **Interpretación**: Proporción de varianza explicada
+- **Ejemplo**: R²=0.86 = El modelo explica el 86% de la variabilidad
 
-#### **RMSE (Root Mean Squared Error)**
-```
-RMSE = √(Σ(y_real - y_pred)² / n)
-```
+### RMSE (Root Mean Squared Error)
 - **Unidad**: mg/dL
 - **Interpretación**: Error promedio esperado
-- **Ventaja**: Penaliza errores grandes
+- **Ejemplo**: RMSE=12.62 mg/dL significa error promedio de ±12.62 mg/dL
 
-#### **MAE (Mean Absolute Error)**
-```
-MAE = Σ|y_real - y_pred| / n
-```
+### MAE (Mean Absolute Error)
 - **Unidad**: mg/dL
-- **Interpretación**: Más intuitivo que RMSE
-- **Ventaja**: Linealmente proporcional al error
-
-### Salida Típica
-```
-EVALUACIÓN DEL MODELO - GLUCOSA POSTPRANDIAL ESTIMADA
-[ENTRENAMIENTO] R² = 0.920 | RMSE = 15.43 mg/dL | MAE = 12.01 mg/dL | n=2450
-[PRUEBA       ] R² = 0.895 | RMSE = 18.67 mg/dL | MAE = 14.23 mg/dL | n=1050
-```
-
-**Interpretación**:
-- El modelo explica el 89.5% de la variabilidad en el conjunto de prueba
-- Error promedio de predicción: ±18.67 mg/dL (RMSE)
-- La pequeña diferencia entre entrenamiento y prueba indica buen balance
+- **Interpretación**: Error absoluto promedio
+- **Ejemplo**: MAE=9.69 mg/dL significa desviación promedio de 9.69 mg/dL
 
 ---
 
-## 🔄 Flujo de Ejecución
+## 🏥 Interpretación Clínica de Errores
 
-1. **Carga de Datos**: Lee CSV desde Google Drive
-2. **Selección de Características**: Elige 7 features relevantes
-3. **Limpieza**: Elimina filas con valores faltantes
-4. **Estimación**: Calcula Glucosa_Post_Estimada
-5. **Clasificación**: Asigna categoría clínica
-6. **División**: 70% entrenamiento, 30% prueba
-7. **Entrenamiento**: Ajusta el Random Forest
-8. **Predicción**: Genera predicciones en ambos conjuntos
-9. **Evaluación**: Calcula R², RMSE, MAE
-10. **Guardado**: Serializa el modelo con joblib
-11. **Visualización**: Gráfico de dispersión predicciones vs. reales
+**Error de ±12-15 mg/dL (RMSE de Random Forest)**:
+- ✅ Aceptable para screening inicial
+- ✅ Requiere confirmación con prueba de laboratorio
+- ✅ Útil para clasificación (Normal/Prediabetes/Diabetes)
+
+**Por qué es importante**:
+- Glucosa Normal: < 140 mg/dL
+- Prediabetes: 140-199 mg/dL
+- Diabetes: ≥ 200 mg/dL
+- **Error de ±12 mg/dL puede cambiar clasificación en fronteras**
+
+**Recomendación clínica**:
+- Usar modelo para **screening inicial**
+- Confirmar con **prueba de laboratorio**
+- **No reemplaza diagnóstico médico profesional**
 
 ---
 
 ## 📁 Estructura de Archivos
 
 ```
-proyecto-glucosa/
+proyecto-glucosa-postprandial/
 │
-├── modelo_rf_glucosa_postprandial.joblib    # Modelo entrenado
-├── Glucosa_Unique_Completo.csv              # Dataset de entrada
-├── glucosa_predictor.py                     # Script principal
-├── README.md                                # Este archivo
-└── resultados/
-    └── grafico_predicciones.png             # Visualización
+├── README.md                                    # Este archivo
+├── Glucosa_Unique_Completo.csv                  # Dataset
+│
+├── modelos/
+│   ├── train_linear_regression.py
+│   ├── train_ridge_regression.py
+│   ├── train_lasso_regression.py
+│   ├── train_random_forest.py
+│   ├── train_gradient_boosting.py               # Ejemplo del código
+│   ├── train_svm.py
+│   └── train_mlp.py
+│
+└── modelos_entrenados/
+    ├── modelo_linear_regression.joblib
+    ├── modelo_ridge_regression.joblib
+    ├── modelo_lasso_regression.joblib
+    ├── modelo_random_forest.joblib
+    ├── modelo_gradient_boosting.joblib
+    ├── modelo_svm.joblib
+    └── modelo_mlp.joblib
 ```
 
 ---
 
-## 💾 Guardado y Reutilización del Modelo
+## ✅ Ventajas de Esta Estructura
 
-### Guardar Modelo
-```python
-joblib.dump(model, "modelo_rf_glucosa_postprandial.joblib")
-```
-
-### Cargar Modelo (en otro script)
-```python
-import joblib
-modelo_cargado = joblib.load("modelo_rf_glucosa_postprandial.joblib")
-
-# Predecir nuevos datos
-X_nuevo = [[45, 75, 170, 26, 120, 80, "Normal"]]
-prediccion = modelo_cargado.predict(X_nuevo)
-print(f"Glucosa Postprandial Estimada: {prediccion[0]:.2f} mg/dL")
-```
-
----
-
-## ✅ Ventajas del Modelo
-
-- ✅ **No requiere normalización**: Random Forest es invariante a escala
-- ✅ **Maneja valores faltantes**: SimpleImputer integrado
-- ✅ **Procesa categóricas automáticamente**: OneHotEncoder en pipeline
-- ✅ **Robusto**: Menos sensible a outliers que regresión lineal
-- ✅ **Paralelo**: Aprovecha múltiples procesadores
-- ✅ **Reproducible**: Con random_state=42
+- ✅ **Modular**: Fácil agregar nuevos modelos
+- ✅ **Reproducible**: random_state garantiza resultados idénticos
+- ✅ **Escalable**: Preprocesamiento automatizado
+- ✅ **Reutilizable**: Pipeline encapsulado
+- ✅ **Comparable**: Todos los modelos con misma metodología
+- ✅ **Clínico**: Clasificación automática según OMS/ADA
 
 ---
 
 ## ⚠️ Limitaciones
 
-- ⚠️ Modelo específico para estimación postprandial
-- ⚠️ Requiere datos de calidad (CSV bien estructurado)
-- ⚠️ Puede sobreajustarse con datasets muy pequeños
-- ⚠️ No sustituye diagnóstico médico profesional
+- ⚠️ Requiere datos de calidad bien estructurados
+- ⚠️ Error de ±12-15 mg/dL requiere confirmación médica
+- ⚠️ No sustituye diagnóstico profesional
+- ⚠️ Modelos específicos para predicción de glucosa postprandial
 
 ---
 
 ## 🚀 Mejoras Futuras
 
-1. **Validación Cruzada K-Fold**: Mayor robustez en evaluación
-2. **Hiperparámetro Tuning**: Grid Search o Random Search
-3. **Feature Engineering**: Crear nuevas variables (razones, interacciones)
-4. **Ensemble Methods**: Combinar Random Forest con Gradient Boosting
-5. **API REST**: Desplegar modelo en servidor web
-6. **Interfaz Web**: Dashboard interactivo con Streamlit/Dash
+1. Validación cruzada K-Fold para mayor robustez
+2. Hiperparámetro tuning automático (Grid Search)
+3. Feature importance analysis
+4. Comparativa visual con gráficos
+5. API REST para despliegue en servidor
+6. Dashboard interactivo (Streamlit/Dash)
 
 ---
 
 ## 📖 Referencias Clínicas
 
-- **OMS (2006)**: Definición y diagnóstico de diabetes mellitus
-- **ADA Standards of Care**: Clasificación de glucosa postprandial
-- **Liu et al. (2021)**: Machine Learning en predicción de diabetes
+- OMS (2006): Definición y diagnóstico de diabetes mellitus
+- ADA Standards of Care: Criterios de clasificación de glucosa postprandial
+- PTGO (Prueba de Tolerancia Oral a la Glucosa): Medición a 120 minutos
+- Friedman (2001): Gradient Boosting Machines
+- Chen & Guestrin (2016): XGBoost - Scalable Tree Boosting
 
 ---
 
@@ -367,8 +652,9 @@ print(f"Glucosa Postprandial Estimada: {prediccion[0]:.2f} mg/dL")
 
 ## 📧 Contacto
 
-Para preguntas o sugerencias, contacta a: [tu email]
+Para preguntas o sugerencias: [tu email]
 
 ---
 
 **Última actualización**: Octubre 2025
+**Versión**: 1.0
